@@ -8,22 +8,20 @@ class Table extends React.Component {
    constructor(props) {
       super(props)
 
-      this.handleChange = this.handleChange.bind(this);
+      this.handleDropDownChange = this.handleDropDownChange.bind(this);
+      this.handleTextChange = this.handleTextChange.bind(this);
+      this.addNewRow = this.addNewRow.bind(this);
 
       this.state = {
-         students: [
-            { id: 1, name: 'Wasif', age: 21, email: 'wasif@email.com' },
-            { id: 2, name: 'Ali', age: 19, email: 'ali@email.com' },
-            { id: 3, name: 'Saad', age: 16, email: 'saad@email.com' },
-            { id: 4, name: 'Asad', age: 25, email: 'asad@email.com' }
-         ],
             error : null,
             isLoaded : false,
             columns : [],
 	    rows : [],
-	    sheet: '',
+	    addRow : {},
+	    textValues : [],
+	    sheet: 'Process Control',
+	    rowAddLabel: '',
 	    ffDropDown : []
-
       }
    }
 
@@ -34,8 +32,9 @@ class Table extends React.Component {
    }
 
 
-  handleChange(e) {
+  handleDropDownChange(e) {
     this.state.columns = [];
+    this.state.addRow = {};
     this.setState({sheet: e.target.value});
     this.updateColumns(e.target.value);
     this.updateRows(e.target.value);
@@ -118,6 +117,24 @@ class Table extends React.Component {
       })
    }
 
+   renderAddRow() {
+
+      return this.state.columns.map(column => {
+         return <td><input type="text" name={column.name}
+	      onChange={event => this.handleTextChange(event)}/></td> 
+
+
+      })
+   }
+	
+   handleTextChange(event) {
+
+	   var myList = this.state.addRow;
+	   myList[event.target.name] = event.target.value;
+
+	   this.setState({ addRow : myList });
+
+   }
    renderTable(){
 
       return (
@@ -127,10 +144,69 @@ class Table extends React.Component {
          <td>{cell}</td>
          ))}
          </tr>
-         ))
+         )
+	 ))
 
+   }e
 
-      )
+   addNewRow(e){
+
+      var myList = this.state.addRow;
+      myList["sheetId"] = this.state.columns[0].key;
+
+      this.setState({ 
+	      addRow : myList 
+      });
+      this.setState({ 
+	      isLoaded : false 
+      });
+
+      const requestOptions = {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify(this.state.addRow)
+      }
+      fetch("http://localhost:8080/v1/addrow/", requestOptions)
+        .then( response => response.json())
+        .then(
+            // handle the result
+            (result) => {
+                this.setState({
+                    isLoaded : true,
+                    rows : result
+                });
+            },
+            // Handle error
+            (error) => {
+                this.setState({
+                    isLoaded: true,
+                    error
+                })
+            }
+        )
+	   /*
+        .then( response => { var x = "" })
+        .then(
+            // handle the result
+            (result) => {
+                this.setState({
+                    isLoaded : true
+                });
+            }
+        )
+	*/
+
+      this.setState({
+	      rowAddLabel : 'New Row Added'
+      });
+
+	   /*
+    this.state.columns = [];
+    this.state.addRow = {};
+    this.setState({sheet: this.state.sheet});
+    this.updateColumns(this.state.sheet);
+    this.updateRows(this.state.sheet);
+    */
    }
 
    render() {
@@ -149,7 +225,7 @@ class Table extends React.Component {
 	      <tr>
 	      <td>
               <select class="mystyle" value={sheet}
-               onChange={this.handleChange}>{this.renderDropDown()}</select>
+               onChange={this.handleDropDownChange}>{this.renderDropDown()}</select>
 	      </td> <td>
 	      <h2>Selected sheet: {sheet}</h2>
 	      </td></tr>
@@ -158,14 +234,13 @@ class Table extends React.Component {
                <tbody>
                   <tr>{this.renderTableHeader()}</tr>
                   {this.renderTable()}
-         <tr>
-	          <td><input type="text" name="name" /></td>
-	          <td><input type="text" name="name" /></td>
-	          <td><input type="text" name="name" /></td>
-	          <td><input type="text" name="name" /></td>
-         </tr>
+                  <tr>{this.renderAddRow()}</tr>
                </tbody>
             </table>
+
+	        <button onClick={this.addNewRow}> Add New Row </button> 
+	        <h2>{this.state.rowAddLabel}</h2>
+
          </div>
       )
 	}
