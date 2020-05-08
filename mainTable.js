@@ -11,6 +11,7 @@ class Table extends React.Component {
       this.handleDropDownChange = this.handleDropDownChange.bind(this);
       this.handleTextChange = this.handleTextChange.bind(this);
       this.addNewRow = this.addNewRow.bind(this);
+      this.handleDeleteRow = this.handleDeleteRow.bind(this);
 
       this.state = {
             error : null,
@@ -33,6 +34,9 @@ class Table extends React.Component {
 
 
   handleDropDownChange(e) {
+      this.setState({
+	      rowAddLabel : ''
+      });
     this.state.columns = [];
     this.state.addRow = {};
     this.setState({sheet: e.target.value});
@@ -140,14 +144,58 @@ class Table extends React.Component {
       return (
 
 	 this.state.rows.map(row => (
-         <tr>{row.row.map(cell => (
+         <tr> <td>
+         <table border="0"><tr><td><button onClick={this.addNewRow}>Edit</button></td><td>
+          <button name={row.rowNumber} onClick={(key, e) => {if(window.confirm("Are you sure you want to delete the row?")){this.handleDeleteRow(key, e)};}}>Delete</button></td></tr></table>
+
+         </td>
+	 {row.row.map(cell => (
          <td>{cell}</td>
          ))}
          </tr>
          )
 	 ))
 
-   }e
+   }
+
+   handleDeleteRow(e){
+
+      var sheetId = this.state.columns[0].key;
+      var rowNumber = e.target.name;
+
+      this.setState({ 
+	      isLoaded : false 
+      });
+
+      const requestOptions = {
+         method: 'DELETE',
+         headers: { 'Content-Type': 'application/json' }
+      }
+     
+      fetch("http://localhost:8080/v1/deleterow/" + sheetId + "/" + rowNumber, requestOptions)
+        .then( response => response.json())
+        .then(
+            // handle the result
+            (result) => {
+                this.setState({
+                    isLoaded : true,
+                    rows : result
+                });
+            },
+            // Handle error
+            (error) => {
+                this.setState({
+                    isLoaded: true,
+                    error
+                })
+            }
+        )
+
+      this.setState({
+	      rowAddLabel : 'Row Deleted'
+      });
+
+   }
 
    addNewRow(e){
 
@@ -184,29 +232,11 @@ class Table extends React.Component {
                 })
             }
         )
-	   /*
-        .then( response => { var x = "" })
-        .then(
-            // handle the result
-            (result) => {
-                this.setState({
-                    isLoaded : true
-                });
-            }
-        )
-	*/
 
       this.setState({
 	      rowAddLabel : 'New Row Added'
       });
 
-	   /*
-    this.state.columns = [];
-    this.state.addRow = {};
-    this.setState({sheet: this.state.sheet});
-    this.updateColumns(this.state.sheet);
-    this.updateRows(this.state.sheet);
-    */
    }
 
    render() {
@@ -232,15 +262,13 @@ class Table extends React.Component {
 	      </table>
             <table id='mainsheet'>
                <tbody>
-                  <tr>{this.renderTableHeader()}</tr>
+                  <tr><th width="20px">Action</th>{this.renderTableHeader()}</tr>
                   {this.renderTable()}
-                  <tr>{this.renderAddRow()}</tr>
+                  <tr><td> <button onClick={this.addNewRow}> Add New Row </button></td>
+	          {this.renderAddRow()}</tr>
                </tbody>
             </table>
-
-	        <button onClick={this.addNewRow}> Add New Row </button> 
 	        <h2>{this.state.rowAddLabel}</h2>
-
          </div>
       )
 	}
